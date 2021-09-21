@@ -1,5 +1,7 @@
 /* user-image - service to run one or more web terminals
  *
+ * Copyright (C) 2021
+ *		Jasper Orschulko <jasper@orschulko.eu>,
  * Copyright (C) 2018
  *     Martin Koppehel <martin@embedded.enterprises>,
  *
@@ -12,8 +14,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/ovgu-cs-workshops/git-userland/tui"
-	"github.com/ovgu-cs-workshops/git-userland/util"
+	"github.com/Jasper-Ben/docker-userland/tui"
+	"github.com/Jasper-Ben/docker-userland/util"
 
 	"github.com/EmbeddedEnterprises/service"
 	"github.com/gammazero/nexus/client"
@@ -25,7 +27,7 @@ var username string
 
 func main() {
 	app := service.New(service.Config{
-		Name:          "git-userland",
+		Name:          "docker-userland",
 		Serialization: client.MSGPACK,
 		Version:       "0.1.0",
 		Description:   "Service to manage the userland",
@@ -48,7 +50,7 @@ func main() {
 	app.Connect()
 
 	procedures := map[string]service.HandlerRegistration{
-		"rocks.git.tui." + instanceid + ".create": service.HandlerRegistration{
+		"rocks.docker.tui." + instanceid + ".create": service.HandlerRegistration{
 			Handler: createTui,
 			Options: wamp.Dict{
 				wamp.OptDiscloseCaller: true,
@@ -81,7 +83,7 @@ func main() {
 
 func createTui(_ context.Context, args wamp.List, _, details wamp.Dict) *client.InvokeResult {
 	if len(args) < 3 {
-		return service.ReturnError("rocks.git.invalid-argument")
+		return service.ReturnError("rocks.docker.invalid-argument")
 	}
 	cid, ok := wamp.AsString(args[0])
 	width, wok := wamp.AsID(args[1])
@@ -89,15 +91,15 @@ func createTui(_ context.Context, args wamp.List, _, details wamp.Dict) *client.
 	callerid, idok := wamp.AsID(details["caller"])
 	calleruser, userok := wamp.AsString(details["caller_authid"])
 	if !ok || !wok || !hok || !idok || !userok || width > 0xffff || height > 0xffff {
-		return service.ReturnError("rocks.git.invalid-argument")
+		return service.ReturnError("rocks.docker.invalid-argument")
 	}
 	if username != calleruser {
-		return service.ReturnError("rocks.git.not-authorized")
+		return service.ReturnError("rocks.docker.not-authorized")
 	}
 	util.Log.Debugf("Running tui for caller: %v", callerid)
 	if err := tui.RunNew(instanceid, cid, uint16(width), uint16(height), callerid); err != nil {
 		util.Log.Warningf("Failed to run instance: %v", err)
-		return service.ReturnError("rocks.git.internal-error")
+		return service.ReturnError("rocks.docker.internal-error")
 	}
 	return service.ReturnEmpty()
 }

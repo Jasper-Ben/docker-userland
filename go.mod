@@ -1,4 +1,4 @@
-module github.com/ovgu-cs-workshops/git-userland
+module github.com/ovgu-cs-workshops/docker-userland
 
 go 1.12
 

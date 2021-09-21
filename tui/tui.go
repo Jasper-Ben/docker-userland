@@ -15,7 +15,7 @@ import (
 	"github.com/gammazero/nexus/transport/serialize"
 	"github.com/gammazero/nexus/wamp"
 	"github.com/kr/pty"
-	"github.com/ovgu-cs-workshops/git-userland/util"
+	"github.com/Jasper-Ben/docker-userland/util"
 )
 
 type processBag struct {
@@ -91,12 +91,12 @@ func RunNew(instance, id string, width uint16, height uint16, caller wamp.ID) er
 	go bag.monitorExit()
 	go bag.monitorOutput()
 	util.Log.Debugf("Command and monitors running, registering")
-	if err := util.App.Client.Register(fmt.Sprintf("rocks.git.tui.%s.%s.input", instance, id), bag.sendInput, wamp.Dict{
+	if err := util.App.Client.Register(fmt.Sprintf("rocks.docker.tui.%s.%s.input", instance, id), bag.sendInput, wamp.Dict{
 		wamp.OptDiscloseCaller: true,
 	}); err != nil {
 		util.Log.Warningf("Failed to register input proc for session %s: %v", id, err)
 	}
-	if err := util.App.Client.Register(fmt.Sprintf("rocks.git.tui.%s.%s.resize", instance, id), bag.resize, wamp.Dict{
+	if err := util.App.Client.Register(fmt.Sprintf("rocks.docker.tui.%s.%s.resize", instance, id), bag.resize, wamp.Dict{
 		wamp.OptDiscloseCaller: true,
 	}); err != nil {
 		util.Log.Warningf("Failed to register resize proc for session %s: %v", id, err)
@@ -108,7 +108,7 @@ func RunNew(instance, id string, width uint16, height uint16, caller wamp.ID) er
 
 func (p *processBag) monitorOutput() {
 	data := make([]byte, 1024)
-	topic := fmt.Sprintf("rocks.git.tui.%s.%s.out", p.instance, p.id)
+	topic := fmt.Sprintf("rocks.docker.tui.%s.%s.out", p.instance, p.id)
 	util.Log.Debugf("Publishing output to '%s'", topic)
 	for {
 		n, err := p.ptmx.Read(data)
@@ -137,12 +137,12 @@ func (p *processBag) monitorExit() {
 	defer procLock.Unlock()
 	p.exited = true
 	util.Log.Debugf("p.cmd.Wait(%s): %v", p.id, err)
-	util.App.Client.Publish(fmt.Sprintf("rocks.git.tui.%s.%s.exit", p.instance, p.id), wamp.Dict{
+	util.App.Client.Publish(fmt.Sprintf("rocks.docker.tui.%s.%s.exit", p.instance, p.id), wamp.Dict{
 		wamp.WhitelistKey: wamp.List{p.caller},
 	}, nil, nil)
 
-	util.App.Client.Unregister(fmt.Sprintf("rocks.git.tui.%s.%s.input", p.instance, p.id))
-	util.App.Client.Unregister(fmt.Sprintf("rocks.git.tui.%s.%s.resize", p.instance, p.id))
+	util.App.Client.Unregister(fmt.Sprintf("rocks.docker.tui.%s.%s.input", p.instance, p.id))
+	util.App.Client.Unregister(fmt.Sprintf("rocks.docker.tui.%s.%s.resize", p.instance, p.id))
 
 	util.Log.Debugf("Remove process %s from list", p.id)
 	if err := p.ptmx.Close(); err != nil {
@@ -153,47 +153,47 @@ func (p *processBag) monitorExit() {
 
 func (p *processBag) sendInput(_ context.Context, args wamp.List, _, details wamp.Dict) *client.InvokeResult {
 	if p.exited {
-		return service.ReturnError("rocks.git.no-such-tui")
+		return service.ReturnError("rocks.docker.no-such-tui")
 	}
 	caller, cok := wamp.AsID(details["caller"])
 	if len(args) < 1 || !cok {
-		return service.ReturnError("rocks.git.invalid-argument")
+		return service.ReturnError("rocks.docker.invalid-argument")
 	}
 	data, ok := args[0].(serialize.BinaryData)
 	if !ok {
-		return service.ReturnError("rocks.git.invalid-argument")
+		return service.ReturnError("rocks.docker.invalid-argument")
 	}
 	if caller != p.caller {
-		return service.ReturnError("rocks.git.not-authorized")
+		return service.ReturnError("rocks.docker.not-authorized")
 	}
 	if n, err := p.ptmx.Write([]byte(data)); err != nil || n < len(data) {
-		return service.ReturnError("rocks.git.internal-error")
+		return service.ReturnError("rocks.docker.internal-error")
 	}
 	return service.ReturnEmpty()
 }
 
 func (p *processBag) resize(_ context.Context, args wamp.List, _, details wamp.Dict) *client.InvokeResult {
 	if p.exited {
-		return service.ReturnError("rocks.git.no-such-tui")
+		return service.ReturnError("rocks.docker.no-such-tui")
 	}
 	caller, cok := wamp.AsID(details["caller"])
 	if len(args) < 2 || !cok {
-		return service.ReturnError("rocks.git.invalid-argument")
+		return service.ReturnError("rocks.docker.invalid-argument")
 	}
 	w, wok := wamp.AsID(args[0])
 	h, hok := wamp.AsID(args[1])
 	if !wok || !hok || w > 0xffff || h > 0xffff {
-		return service.ReturnError("rocks.git.invalid-argument")
+		return service.ReturnError("rocks.docker.invalid-argument")
 	}
 	if caller != p.caller {
-		return service.ReturnError("rocks.git.not-authorized")
+		return service.ReturnError("rocks.docker.not-authorized")
 	}
 	if err := pty.Setsize(p.ptmx, &pty.Winsize{
 		Rows: uint16(h),
 		Cols: uint16(w),
 	}); err != nil {
 		util.Log.Warningf("Failed to resize pty: %v", err)
-		return service.ReturnError("rocks.git.internal-error")
+		return service.ReturnError("rocks.docker.internal-error")
 	}
 	return service.ReturnEmpty()
 }

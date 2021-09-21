@@ -24,16 +24,16 @@ RUN set -ex \
         tmux \
         vim \
         emacs-nox \
-        ti \
+        tig \
         nano \
         less \
         git \
+        curl \
     && su user -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"' \
     && sed -i s/robbyrussell/gianu/g /home/user/.zshrc \
     && apt-get install -y \
         apt-transport-https \
         ca-certificates \
-        curl \
         gnupg \
         lsb-release \
     && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
@@ -45,7 +45,7 @@ RUN set -ex \
         docker-ce-cli \
         containerd.io \
     && curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64" -o /usr/local/bin/docker-compose \
-    && chmod +x "$_" \
+    && chmod +x /usr/local/bin/docker-compose \
     && apt-get purge curl --autoremove -y \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*

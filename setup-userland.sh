@@ -17,33 +17,29 @@ git init --bare .remote-example-201
 git init --bare .remote-example-300
 
 
-git clone /home/user/.remote-example-100 example-100-tmp
+git clone /home/user/.remote-example-100 example-100
 
 (
-    cd example-100-tmp
+    cd example-100
 
     cat > README.md <<EOF
-# A cool story about trains
+Try running your first container:
 
-> TODO
+`docker run --rm debian echo "Hello World!"`
+
+Let's break this command down:
+- `docker` calls the Docker binary
+- `run` tells Docker to run a command in a new container
+- `--rm` automatically ReMoves the container when it exits
+- `debian` use the official debian docker image from docker hub:
+   https://hub.docker.com/_/debian
+- `echo` first argument after the image defines the command you run
+- `"Hello World"` argument parsed to the defined command
 EOF
     git add README.md
-    git commit -m "Add title to README
-
-The story will be about trains but it has no content yet."
-
-    git push
-    git clone /home/user/.remote-example-100 ~/example-100
-
-    sed -i 's/> TODO/I like trains! Trains are great. I once was on a train. It was great!\n\nThe End./g' README.md
-    git add README.md
-    git commit -m "Write beginning of story
-
-I really like trains :D"
-
+    git commit -m "Add README"
     git push
 )
-rm -r example-100-tmp
 
 git clone /home/user/.remote-example-101 example-101-tmp
 (
